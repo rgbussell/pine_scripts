@@ -1,0 +1,59 @@
+//@version=5
+indicator("Multi Options Annotations", overlay=true, max_lines_count=500, max_labels_count=500)
+
+// Input for multiple annotations (one per line: ticker,expiration(YYYY-MM-DD),strike,options_type)
+input_text = input.text_area("AAPL,2025-01-17,150,LC\nMSFT,2025-02-21,300,SP", title="Annotations (Format: ticker,expiration,strike,type)", tooltip="Enter one annotation per line, comma-separated: ticker, YYYY-MM-DD, strike_price, type (LC/SC/LP/SP)")
+
+// Function to draw a single annotation
+draw_annotation(ticker, expiration_str, strike_price, options_type) =>
+    // Parse expiration date
+    expiration_parts = str.split(expiration_str, "-")
+    if array.size(expiration_parts) == 3
+        expiration_year = int(str.tonumber(array.get(expiration_parts, 0)))
+        expiration_month = int(str.tonumber(array.get(expiration_parts, 1)))
+        expiration_day = int(str.tonumber(array.get(expiration_parts, 2)))
+        
+        // Create timestamp (end of day, UTC)
+        expiration_time = timestamp(expiration_year, expiration_month, expiration_day, 23, 59, 59)
+        
+        // Current bar time
+        current_time = time
+        
+        // Determine line color based on options type
+        line_color = switch options_type
+            "LC" => color.green
+            "SP" => color.blue
+            "SC" => color.yellow
+            "LP" => color.white
+            => color.gray  // Fallback
+        
+        // Text for label
+        label_text = ticker + " " + str.tostring(strike_price) + " " + options_type
+        
+        // Draw horizontal line from current time to expiration
+        line.new(x1=current_time, y1=strike_price, x2=expiration_time, y2=strike_price,
+                 xloc=xloc.bar_time, color=line_color, width=2, extend=extend.none)
+        
+        // Add smaller label with black background and white text for visibility
+        label.new(x=expiration_time, y=strike_price, text=label_text,
+                  xloc=xloc.bar_time, style=label.style_label_up,
+                  color=color.black, textcolor=color.white, size=size.small)
+
+// Parse and draw on last bar
+if barstate.islast
+    lines = str.split(input_text, "\n")
+    for i = 0 to array.size(lines) - 1
+        line_str = array.get(lines, i)
+        if str.length(line_str) > 0
+            parts = str.split(line_str, ",")
+            if array.size(parts) == 4
+                ticker = str.trim(array.get(parts, 0))
+                expiration_str = str.trim(array.get(parts, 1))
+                strike_str = str.trim(array.get(parts, 2))
+                options_type = str.trim(array.get(parts, 3))
+                
+                strike_price = str.tonumber(strike_str)
+                if na(strike_price) or str.length(ticker) == 0 or str.length(expiration_str) == 0 or str.length(options_type) == 0
+                    continue  // Skip invalid entries
+                
+                draw_annotation(ticker, expiration_str, strike_price, options_type)
