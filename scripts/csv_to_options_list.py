@@ -84,6 +84,6 @@ def main(csv_file_path):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parse Fidelity CSV to Pine Script annotations format.")
-    parser.add_argument("csv_file", help="Path to the input CSV file")
+    parser.add_argument("--csv-file", help="Path to the input CSV file")
     args = parser.parse_args()
     main(args.csv_file)
