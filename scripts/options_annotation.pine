@@ -1,0 +1,41 @@
+//@version=5
+indicator("Options Annotation", overlay=true, max_lines_count=1, max_labels_count=1)
+
+// Inputs
+ticker = input.string("AAPL", title="Ticker Symbol")
+expiration_str = input.string("2025-01-17", title="Expiration Date (YYYY-MM-DD)")
+strike_price = input.float(150.0, title="Strike Price")
+options_type = input.string("LC", title="Options Type", options=["LC", "SC", "LP", "SP"])
+
+// Create full datetime string for timestamp (end of day)
+expiration_datetime = str.format("{0} 23:59:59", expiration_str)
+
+// Parse to timestamp (simple int)
+expiration_time = timestamp(expiration_datetime)
+
+// Current bar time (series)
+current_time = time
+
+// Determine color based on options type
+line_color = switch options_type
+    "LC" => color.green
+    "SP" => color.blue
+    "SC" => color.yellow
+    "LP" => color.white
+    => color.gray  // Fallback
+
+text_color = line_color  // Same color for text
+
+// Text for label
+label_text = ticker + " " + str.tostring(strike_price) + " " + options_type
+
+// Draw horizontal line from current time to expiration
+if barstate.islast
+    line.new(x1=current_time, y1=strike_price, x2=expiration_time, y2=strike_price,
+             xloc=xloc.bar_time, color=line_color, width=2, extend=extend.none)
+
+// Add label above the line at expiration
+if barstate.islast
+    label.new(x=expiration_time, y=strike_price, text=label_text,
+              xloc=xloc.bar_time, style=label.style_label_up,
+              color=line_color, textcolor=text_color, size=size.normal)
