@@ -28,13 +28,13 @@ draw_annotation(ticker, expiration_str, strike_price, options_type) =>
             // Determine base color and style based on options type (to differentiate overlaps)
             base_color = switch options_type
                 "LC" => color.rgb(114, 186, 116)
-                "SP" => color.rgb(73, 162, 234)
-                "SC" => color.yellow
+                "SP" => color.rgb(240, 104, 143)
+                "SC" => color.rgb(221, 210, 118)
                 "LP" => color.white
                 => color.gray  // Fallback
             
             // Semi-transparent color for blending on overlaps (alpha=70/255 ~27% transparent)
-            line_color = color.new(base_color, 70)
+            line_color = color.new(base_color, 40)
             
             // Vary line style per type for visual distinction
             line_style = switch options_type
@@ -45,7 +45,7 @@ draw_annotation(ticker, expiration_str, strike_price, options_type) =>
                 => line.style_solid
             
             // Text for label (use base color for text, semi-transparent background if needed)
-            label_text = ticker + " " + str.tostring(strike_price) + " " + options_type
+            label_text = str.tostring(strike_price) + " " + options_type
             text_color = base_color  // Full opacity for text visibility
             
             // Draw horizontal line from start to end time at exact strike_price (y-axis price level)
@@ -62,7 +62,7 @@ draw_annotation(ticker, expiration_str, strike_price, options_type) =>
             // Add label at center of line, above it, with no style/arrow; doubled font size (normal); text color matches line base
             label.new(x=label_x, y=label_y, text=label_text,
                       xloc=xloc.bar_time, style=label.style_none,
-                      color=color.new(color.black, 50), textcolor=text_color, size=size.normal)
+                      color=color.new(color.white, 50), textcolor=text_color, size=size.normal)
 
 // Parse and draw on last bar
 if barstate.islast
