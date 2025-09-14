@@ -6,38 +6,48 @@ input_text = input.text_area("AAPL,2025-01-17,150,LC\nMSFT,2025-02-21,300,SP", t
 
 // Function to draw a single annotation
 draw_annotation(ticker, expiration_str, strike_price, options_type) =>
-    // Parse expiration date
-    expiration_parts = str.split(expiration_str, "-")
-    if array.size(expiration_parts) == 3
-        expiration_year = int(str.tonumber(array.get(expiration_parts, 0)))
-        expiration_month = int(str.tonumber(array.get(expiration_parts, 1)))
-        expiration_day = int(str.tonumber(array.get(expiration_parts, 2)))
-        
-        // Create timestamp (end of day, UTC)
-        expiration_time = timestamp(expiration_year, expiration_month, expiration_day, 23, 59, 59)
-        
-        // Current bar time
-        current_time = time
-        
-        // Determine line color based on options type
-        line_color = switch options_type
-            "LC" => color.green
-            "SP" => color.blue
-            "SC" => color.yellow
-            "LP" => color.white
-            => color.gray  // Fallback
-        
-        // Text for label
-        label_text = ticker + " " + str.tostring(strike_price) + " " + options_type
-        
-        // Draw horizontal line from current time to expiration
-        line.new(x1=current_time, y1=strike_price, x2=expiration_time, y2=strike_price,
-                 xloc=xloc.bar_time, color=line_color, width=2, extend=extend.none)
-        
-        // Add smaller label with black background and white text for visibility
-        label.new(x=expiration_time, y=strike_price, text=label_text,
-                  xloc=xloc.bar_time, style=label.style_label_up,
-                  color=color.black, textcolor=color.white, size=size.small)
+    // Only draw if current chart ticker matches
+    if syminfo.ticker == ticker
+        // Parse expiration date
+        expiration_parts = str.split(expiration_str, "-")
+        if array.size(expiration_parts) == 3
+            expiration_year = int(str.tonumber(array.get(expiration_parts, 0)))
+            expiration_month = int(str.tonumber(array.get(expiration_parts, 1)))
+            expiration_day = int(str.tonumber(array.get(expiration_parts, 2)))
+            
+            // Create timestamp (end of day, UTC)
+            expiration_time = timestamp(expiration_year, expiration_month, expiration_day, 23, 59, 59)
+            
+            // Current bar time
+            current_time = time
+            
+            // Ensure line starts at earlier time and ends at later time
+            start_time = math.min(current_time, expiration_time)
+            end_time = math.max(current_time, expiration_time)
+            
+            // Determine line color based on options type
+            line_color = switch options_type
+                "LC" => color.green
+                "SP" => color.blue
+                "SC" => color.yellow
+                "LP" => color.white
+                => color.gray  // Fallback
+            
+            // Text for label
+            label_text = ticker + " " + str.tostring(strike_price) + " " + options_type
+            
+            // Draw horizontal line from start to end time at exact strike_price (y-axis price level)
+            line.new(x1=start_time, y1=strike_price, x2=end_time, y2=strike_price,
+                     xloc=xloc.bar_time, color=line_color, width=2, extend=extend.none)
+            
+            // Label offset: fixed tick-based for consistent spacing on linear scales
+            label_offset = syminfo.mintick * 30
+            label_y = strike_price + label_offset
+            
+            // Add label at end of line, above it, with no style/arrow; doubled font size (normal); text color matches line
+            label.new(x=end_time, y=label_y, text=label_text,
+                      xloc=xloc.bar_time, style=label.style_none,
+                      color=color.black, textcolor=line_color, size=size.normal)
 
 // Parse and draw on last bar
 if barstate.islast
