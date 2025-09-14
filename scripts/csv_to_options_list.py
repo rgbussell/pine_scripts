@@ -69,10 +69,11 @@ def extract_options_data(row):
 
 def main(csv_file_path):
 
-    print(f'main df has shape {df.shape}')
     # Read CSV with pandas to auto-detect separator
     df = pd.read_csv(csv_file_path)
     df = df.dropna()
+
+    print(f'main df has shape {df.shape}')
     
     annotations = []
     for _, row in df.iterrows():
