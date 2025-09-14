@@ -71,9 +71,7 @@ def main(csv_file_path):
 
     # Read CSV with pandas to auto-detect separator
     df = pd.read_csv(csv_file_path)
-    print(f'main df has shape {df.shape}')
-
-    print(f'main df has shape {df.shape}')
+    df = df.dropna(subset='Description')
     
     annotations = []
     for _, row in df.iterrows():
