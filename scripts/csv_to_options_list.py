@@ -16,6 +16,8 @@ def extract_options_data(row):
     """Extract ticker, expiration, strike, options_type from a row."""
     description = row['Description']
     quantity = float(row['Quantity'])
+
+    print(description)
     
     # Extract ticker: first word before space
     ticker_match = re.match(r'^(\w+)', description)
