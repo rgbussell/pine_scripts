@@ -18,6 +18,7 @@ class FidelityParser(object):
     def load(self):
         """Load CSV and separate options and stocks"""
         self.df = pd.read_csv(self.csv_file_path)
+        self.df['Last Price'] = self.df['Last Price'].str.replace(r'[\$,]', '', regex=True).astype(float)
         self.options_df = self.get_options_rows(self.df)
         self.stock_df = self.get_stock_rows(self.df)
         print(f"tot|options|stock|diff {len(self.df)}|{len(self.options_df)}|{len(self.stock_df)}|{len(self.df) - (len(self.options_df) + len(self.stock_df))}")
@@ -25,7 +26,7 @@ class FidelityParser(object):
     def format_options_data(self):
         """Format options data for output"""
         options_rows = []
-        for row in self.options_df.itertuples():
+        for i, row in self.options_df.iterrows():
             data = self.extract_options_data_from_row(row)
             if data:
                 options_rows.append(data)
@@ -35,7 +36,8 @@ class FidelityParser(object):
         """Extract ticker, expiration, strike, options_type from a row."""
         description = row.Description
         quantity = float(row.Quantity)
-
+        account = row.get('Account Name', '')
+        last_price = float(row.get('Last Price'))
         print(description)
         
         # Extract ticker: first word before space
@@ -83,7 +85,10 @@ class FidelityParser(object):
             'ticker': ticker,
             'expiration': expiration_date,
             'strike': strike,
-            'options_type': options_type
+            'options_type': options_type,
+            'quantity': quantity,
+            'account': account,
+            'last price': last_price
         }
 
     def get_good_rows(self, df):

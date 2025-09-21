@@ -63,6 +63,8 @@ class TastytradeParser(object):
         exp_date_str = row.get('Exp Date', '')
         strike = float(row.get('Strike Price'))
         call_put = row.get('Call/Put').upper()
+        account = row.get('Account', '')
+        last_price = float(row.get('Bid (Sell)'))
         
         # Skip non-options
         if opt_type != 'OPTION':
@@ -108,5 +110,8 @@ class TastytradeParser(object):
             'ticker': ticker,
             'expiration': expiration_date,
             'strike': strike,
-            'options_type': options_type
+            'options_type': options_type,
+            'quantity': quantity,
+            'account': account,
+            'last price': last_price
         }

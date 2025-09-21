@@ -1,18 +1,48 @@
 {
+    "harmonized_stock_columns": [
+        "broker",
+        "account",
+        "ticker",
+        "quantity",
+        "last price",
+        "type",
+        "current value"
+    ],
+    "harmonized_option_columns": [
+        "broker",
+        "account",
+        "ticker",
+        "quantity",
+        "options_type",
+        "expiration",
+        "strike",
+        "last price",
+        "current value"
+        ],
     "fidelity": {
         "stock_renames": {
-            "Last Price": "Last Price"
+            "Last Price": "Last Price",
+            "Account Name": "Account",
+            "Quantity": "quantity",
+            "Symbol": "ticker"
         },
         "option_renames": {
-            "Last Price": "Last Price"
+            "Last Price": "Last Price",
+            "Quantity": "quantity",
+            "Symbol": "ticker"
         }
     },
     "tastytrade": {
         "stock_renames": {
-            "Underlying Last Price": "Last Price"
+            "Underlying Last Price": "Last Price",
+            "Account": "Account",
+            "Quantity": "quantity",
+            "Symbol": "ticker"
         },
         "option_renames": {
-            "Underlying Last Price": "Last Price"
+            "Bid (Sell)": "Last Price",
+            "Account": "Account",
+            "Quantity": "quantity"
         }
     }
 }

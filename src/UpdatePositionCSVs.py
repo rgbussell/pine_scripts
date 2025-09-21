@@ -58,18 +58,38 @@ def harmonize_and_store(fidelity_csv_path, tastytrade_csv_path, output_format='j
         options_list.append(options_df)
         del parser_obj, stocks_df, options_df
 
-   # parse the tastytrade data
-    #tastytrade_obj = TastytradeParser(tastytrade_csv_path)
-    #tastytrade_obj.load()
-    #stocks_tt_df = tastytrade_obj.stock_df
-    #options_tt_df = tastytrade_obj.format_options_data()
-
-    #options_tt_df['broker'] = 'tastytrade'
-    #stocks_tt_df['broker'] = 'tastytrade'
-
     # combing data from all brokers
     combined_stocks_df = pd.concat(stock_list, ignore_index=True)
     combined_options_df = pd.concat(options_list, ignore_index=True)
+
+    # rename all to lower case columns
+    combined_stocks_df.columns = [col.lower() for col in combined_stocks_df.columns]
+    combined_options_df.columns = [col.lower() for col in combined_options_df.columns]
+
+    # add some quantifcations
+    tmp_len = combined_stocks_df.shape[0]
+    combined_stocks_df.dropna(subset=['quantity'], inplace=True)
+    diff_len = tmp_len - combined_stocks_df.shape[0]
+    if diff_len > 0:
+        print(f"Dropped {diff_len} rows with missing Quantity or Last Price")
+    combined_stocks_df['current value'] = combined_stocks_df.apply(lambda row:
+        row['last price'] * row['quantity'], axis=1)
+    
+    # compute current value of optiosn from the bid
+    combined_options_df['current value'] = combined_options_df.apply(lambda row:
+        row['last price'] * 100 * row['quantity'], axis=1)
+    
+    # only return the harmonized columns
+    harmonized_stock_cols = config['harmonized_stock_columns']
+    harmonized_option_cols = config['harmonized_option_columns']
+    combined_stocks_df = combined_stocks_df[harmonized_stock_cols]
+    combined_options_df = combined_options_df[harmonized_option_cols]
+
+    combined_stocks_path = Path(output_path) / Path('harmonized_stocks.csv')
+    combined_options_path = Path(output_path) / Path('harmonized_options.csv')
+    combined_stocks_df.to_csv(combined_stocks_path, index=False)
+    combined_options_df.to_csv(combined_options_path, index=False)
+
 
     return combined_stocks_df, combined_options_df
 
@@ -84,17 +104,5 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
-    harmonized_stocks_df, harmonized_options_df = harmonize_and_store(args.fidelity, args.tastytrade, args.format, args.output)
+    harmonize_and_store(args.fidelity, args.tastytrade, args.format, args.output)
     
-    # add some quantifcations
-    tmp_len = harmonized_stocks_df.shape[0]
-    harmonized_stocks_df.dropna(subset=['Quantity'], inplace=True)
-    diff_len = tmp_len - harmonized_stocks_df.shape[0]
-    if diff_len > 0:
-        print(f"Dropped {diff_len} rows with missing Quantity or Last Price")
-    harmonized_stocks_df['Last Price'] = harmonized_stocks_df['Last Price'].str.replace(r'[\$,]', '', regex=True).astype(float)
-    harmonized_stocks_df['Current Value'] = harmonized_stocks_df.apply(lambda row:
-        row['Last Price'] * row['Quantity'], axis=1)
-    
-    harmonized_stocks_df.to_csv(Path(args.output) / Path('harmonized_stocks.csv'), index=False)
-    harmonized_options_df.to_csv(Path(args.output) / Path('harmonized_options.csv'), index=False)
