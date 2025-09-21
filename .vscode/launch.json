@@ -1,0 +1,22 @@
+        {
+            "version": "0.2.0",
+            "configurations": [
+                {
+                    "name": "plot python positions",
+                    "type": "python",
+                    "request": "launch",
+                    "program": "${workspaceFolder}/src/Positions.py",
+                    "console": "integratedTerminal",
+                    "args": [
+                        "--fidelity",
+                        "/Users/rbussell/repos/pine_scripts/data/positions.csv",
+                        "--tastytrade",
+                        "/Users/rbussell/repos/pine_scripts/data/positions_tasty.csv",
+                        "--output",
+                        "/Users/rbussell/Desktop",
+                        "--format",
+                        "json"
+                    ]
+                }
+            ]
+        }
