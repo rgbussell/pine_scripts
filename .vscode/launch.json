@@ -5,7 +5,7 @@
                     "name": "plot python positions",
                     "type": "python",
                     "request": "launch",
-                    "program": "${workspaceFolder}/src/Positions.py",
+                    "program": "${workspaceFolder}/src/UpdatePositionCSVs.py",
                     "console": "integratedTerminal",
                     "args": [
                         "--fidelity",

@@ -1,0 +1,18 @@
+{
+    "fidelity": {
+        "stock_renames": {
+            "Last Price": "Last Price"
+        },
+        "option_renames": {
+            "Last Price": "Last Price"
+        }
+    },
+    "tastytrade": {
+        "stock_renames": {
+            "Underlying Last Price": "Last Price"
+        },
+        "option_renames": {
+            "Underlying Last Price": "Last Price"
+        }
+    }
+}
