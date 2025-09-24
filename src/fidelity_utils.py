@@ -65,8 +65,8 @@ class FidelityParser(object):
         strike = float(strike_match.group(1))
         
         # Determine call/put from Description or Symbol
-        is_call = 'CALL' in description.upper() or 'C' in row.Symbol
-        is_put = 'PUT' in description.upper() or 'P' in row.Symbol
+        is_call = 'CALL' in description.split(" ")[-1].upper()
+        is_put = 'PUT' in description.split(" ")[-1].upper()
         
         if not (is_call or is_put):
             return None

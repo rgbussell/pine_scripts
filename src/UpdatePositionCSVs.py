@@ -4,6 +4,7 @@ import argparse
 import re  # For parsing option symbols
 from fidelity_utils import FidelityParser
 from tastytrade_utils import TastytradeParser
+from options_list import annotaions_from_df
 import json
 
 def harmonize_and_store(fidelity_csv_path, tastytrade_csv_path, output_format='json', output_path='harmonized_positions.json'):
@@ -90,7 +91,6 @@ def harmonize_and_store(fidelity_csv_path, tastytrade_csv_path, output_format='j
     combined_stocks_df.to_csv(combined_stocks_path, index=False)
     combined_options_df.to_csv(combined_options_path, index=False)
 
-
     return combined_stocks_df, combined_options_df
 
 
@@ -104,5 +104,5 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
-    harmonize_and_store(args.fidelity, args.tastytrade, args.format, args.output)
-    
+    stocks_df, options_df = harmonize_and_store(args.fidelity, args.tastytrade, args.format, args.output)
+    annotaions_from_df(options_df)
