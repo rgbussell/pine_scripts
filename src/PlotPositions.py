@@ -59,24 +59,26 @@ class PlotPositions:
         # Stocks current value bar plots - regular and log scale
         sorted_stocks = stocks_df.sort_values('current value', ascending=False)
         
-        # Create figure with two subplots stacked vertically, sharing x axis
+        # Create figure with two subplots stacked vertically, sharing 
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
         
         # Top subplot - linear scale
-        ax1.bar(sorted_stocks['ticker'], sorted_stocks['current value'], edgecolor='black', facecolor='none')
+        ax1.bar(sorted_stocks['ticker'], sorted_stocks['current value'], edgecolor='black', facecolor='lightgrey')
         ax1.set_title('Current Value by Stock Position (Linear Scale)')
         ax1.set_ylabel('Current Value ($)', fontsize=16)
         ax1.tick_params(axis='both', labelsize=16)
         ax1.tick_params(axis='x', rotation=90)
+        ax1.grid(True, which='both', axis='y', linestyle='--', linewidth=0.5)
 
         # Bottom subplot - log scale 
-        ax2.bar(sorted_stocks['ticker'], sorted_stocks['current value'], edgecolor='black', facecolor='none')
-        ax2.set_title('Current Value by Stock Position (Log Scale)')
+        ax2.bar(sorted_stocks['ticker'], sorted_stocks['current value'], edgecolor='black', facecolor='lightgrey')
         ax2.set_xlabel('Ticker', fontsize=16)
         ax2.set_ylabel('Current Value ($)', fontsize=16)
         ax2.set_yscale('log')
         ax2.tick_params(axis='both', labelsize=16)
         ax2.tick_params(axis='x', rotation=90)
+        ax2.grid(True, which='both', axis='x', linestyle='--', linewidth=0.5)
+
 
         plt.tight_layout()
         images.append('<h2>Current Value by Stock Position</h2>' + self.get_base64_image(fig))
@@ -207,7 +209,8 @@ class PlotPositions:
         expiring_today = future_options[future_options['days_to_expiry'] == 0]
         expiring_week = future_options[(future_options['days_to_expiry'] > 0) & (future_options['days_to_expiry'] < 7)]
         expiring_month = future_options[(future_options['days_to_expiry'] >= 7) & (future_options['days_to_expiry'] < 30)]
-        expiring_quarter = future_options[(future_options['days_to_expiry'] >= 30) & (future_options['days_to_expiry'] < 90)]
+        expiring_45dte = future_options[(future_options['days_to_expiry'] >= 30) & (future_options['days_to_expiry'] < 45)]
+        expiring_quarter = future_options[(future_options['days_to_expiry'] >= 45) & (future_options['days_to_expiry'] < 90)]
         
         # Function to generate HTML list if not empty
         def generate_html_list(df, title):
@@ -215,15 +218,16 @@ class PlotPositions:
                 return f"<h3 style='font-size: 24px;'>{title}</h3><p style='font-size: 18px;'>No options {title.lower()}.</p>"
             html = f"<h3 style='font-size: 24px;'>{title}</h3><ul style='font-size: 18px;'>"
             for _, row in df.sort_values('expiration_date').iterrows():
-                html += f"<li>{row['ticker']}|{row['options_type']}|{row['expiration']}|{row['strike']}|{row['current value']}</li>"
+                html += f"<li><b>{row['ticker']} {row['strike']}</b> | {row['options_type']} | {row['expiration']}</li>"
             html += "</ul>"
             return html
         
         # Generate HTML for all buckets
-        html = generate_html_list(expiring_today, "Options Expiring Today")
-        html += generate_html_list(expiring_week, "Options Expiring in Less Than a Week")
-        html += generate_html_list(expiring_month, "Options Expiring in Less Than a Month")
-        html += generate_html_list(expiring_quarter, "Options Expiring in Less Than a Quarter")
+        html = generate_html_list(expiring_today, "Expiring Today")
+        html += generate_html_list(expiring_week, "...7 DTE")
+        html += generate_html_list(expiring_month, "...30 DTE")
+        html += generate_html_list(expiring_month, "..45 DTE")
+        html += generate_html_list(expiring_quarter, "...90 DTE")
         
         # Save all to a single CSV with bucket column
         future_options['bucket'] = pd.cut(future_options['days_to_expiry'],

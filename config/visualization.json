@@ -7,8 +7,8 @@
     },
     "option_colors": {
         "LC": "darkgreen",
-        "LP": "green",
-        "SC": "darkred",
-        "SP": "red"
+        "LP": "red",
+        "SC": "green",
+        "SP": "darkred"
     }
 }
