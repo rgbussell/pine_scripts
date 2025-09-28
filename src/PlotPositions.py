@@ -56,15 +56,29 @@ class PlotPositions:
     def plot_current_value(self, stocks_df, options_df):
         images = []
         
-        # Stocks current value bar plot
+        # Stocks current value bar plots - regular and log scale
         sorted_stocks = stocks_df.sort_values('current value', ascending=False)
-        fig, ax = plt.subplots(figsize=(10, 4))
-        ax.bar(sorted_stocks['ticker'], sorted_stocks['current value'], edgecolor='black', facecolor='none')
-        ax.set_title('Current Value by Stock Position')
-        ax.set_xlabel('Ticker', fontsize=16)
-        ax.set_ylabel('Current Value ($)', fontsize=16)
-        ax.tick_params(axis='both', labelsize=16)
-        plt.xticks(rotation=45, ha='right')
+        
+        # Create figure with two subplots stacked vertically, sharing x axis
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+        
+        # Top subplot - linear scale
+        ax1.bar(sorted_stocks['ticker'], sorted_stocks['current value'], edgecolor='black', facecolor='none')
+        ax1.set_title('Current Value by Stock Position (Linear Scale)')
+        ax1.set_ylabel('Current Value ($)', fontsize=16)
+        ax1.tick_params(axis='both', labelsize=16)
+        ax1.tick_params(axis='x', rotation=90)
+
+        # Bottom subplot - log scale 
+        ax2.bar(sorted_stocks['ticker'], sorted_stocks['current value'], edgecolor='black', facecolor='none')
+        ax2.set_title('Current Value by Stock Position (Log Scale)')
+        ax2.set_xlabel('Ticker', fontsize=16)
+        ax2.set_ylabel('Current Value ($)', fontsize=16)
+        ax2.set_yscale('log')
+        ax2.tick_params(axis='both', labelsize=16)
+        ax2.tick_params(axis='x', rotation=90)
+
+        plt.tight_layout()
         images.append('<h2>Current Value by Stock Position</h2>' + self.get_base64_image(fig))
         
         # Options current value bar plot
@@ -201,7 +215,7 @@ class PlotPositions:
                 return f"<h3 style='font-size: 24px;'>{title}</h3><p style='font-size: 18px;'>No options {title.lower()}.</p>"
             html = f"<h3 style='font-size: 24px;'>{title}</h3><ul style='font-size: 18px;'>"
             for _, row in df.sort_values('expiration_date').iterrows():
-                html += f"<li>Ticker: {row['ticker']}, Expiration: {row['expiration']}, Strike: {row['strike']}, Type: {row['options_type']}, Current Value: {row['current value']}, Gain/Loss: {row['gain loss']}</li>"
+                html += f"<li>{row['ticker']}|{row['options_type']}|{row['expiration']}|{row['strike']}|{row['current value']}</li>"
             html += "</ul>"
             return html
         
