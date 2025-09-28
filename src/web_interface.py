@@ -42,13 +42,20 @@ def home():
         # Run plotting and reporting
         plotter = PlotPositions(input_dir=output_dir, output_dir=output_dir)
         plotter.plot_all(stocks_df, options_df)
-        plotter.report_expiring_options(options_df)
+        expiring_html = plotter.report_expiring_options(options_df)
         
         # Optional: Clean up temp files
         os.remove(fidelity_path)
         os.remove(tastytrade_path)
         
-        return 'Update completed! Check your browser for the opened plots.html or console for reports.'
+        return f'''
+        <!doctype html>
+        <title>Update Completed</title>
+        <h1>Update Completed!</h1>
+        <p>Check your browser for the opened plots.html or console for reports.</p>
+        {expiring_html}
+        <br><a href="/">Back to form</a>
+        '''
     
     return '''
     <!doctype html>

@@ -6,9 +6,9 @@
         "SP": "Short Put"
     },
     "option_colors": {
-        "LC": "green",
-        "LP": "lime",
+        "LC": "darkgreen",
+        "LP": "green",
         "SC": "darkred",
-        "SP": "orange"
+        "SP": "red"
     }
 }

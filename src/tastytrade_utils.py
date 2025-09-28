@@ -15,6 +15,8 @@ def get_type(row):
         return 'OPTION'
     elif re.search(r'\b(STOCK)\b', type.upper()):
         return 'STOCK'
+    elif re.search(r'\b(CRYPTO)\b', type.upper()):
+        return 'CRYPTO'
     else:
         return 'UNKNOWN'
     
@@ -25,6 +27,10 @@ def is_option_row(row):
 def is_stock_row(row):
     """Determine if a row represents an options position."""
     return bool(re.search(r'\b(STOCK)\b', get_type(row)))
+
+def is_crypto_row(row):
+    """Determine if a row represents a crypto position."""
+    return bool(re.search(r'\b(CRYPTO)\b', get_type(row)))
 
 class TastytradeParser(object):
     """Class to parse tastytrade csv files"""
@@ -41,6 +47,9 @@ class TastytradeParser(object):
             self.df['Cost Basis'] = 0.0  # Fallback
         self.options_df = self.get_options_rows(self.df)
         self.stock_df = self.get_stock_rows(self.df)
+        print("combining stock and cryto postions for tastytrade")
+        crypto_df = self.get_crypto_rows(self.df)
+        self.stock_df = pd.concat([self.stock_df, crypto_df], ignore_index=True)
         print(f"tot|options|stock|diff {len(self.df)}|{len(self.options_df)}|{len(self.stock_df)}|{len(self.df) - (len(self.options_df) + len(self.stock_df))}")
 
     def get_options_rows(self, df):
@@ -50,6 +59,10 @@ class TastytradeParser(object):
     def get_stock_rows(self, df):
         """Get only stock rows"""
         return df[df.apply(is_stock_row, axis=1)]
+    
+    def get_crypto_rows(self, df):
+        """Get only stock rows"""
+        return df[df.apply(is_crypto_row, axis=1)]
 
     def format_options_data(self):
         """Format options data for output"""

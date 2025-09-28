@@ -80,11 +80,19 @@ def harmonize_and_store(fidelity_csv_path, tastytrade_csv_path, output_format='j
     # compute current value of optiosn from the bid
     combined_options_df['current value'] = combined_options_df.apply(lambda row:
         row['last price'] * 100 * row['quantity'], axis=1)
-    
+
     # Compute gain/loss for both (assuming cost basis is total cost/credit)
     combined_stocks_df['gain loss'] = combined_stocks_df['current value'] - combined_stocks_df['cost basis']
     combined_options_df['gain loss'] = combined_options_df['current value'] - combined_options_df['cost basis']
     
+    # Format the current value column to 2 decimal places
+    combined_stocks_df['current value'] = combined_stocks_df['current value'].round(2)
+    combined_options_df['current value'] = combined_options_df['current value'].round(2)
+
+    # format the gaan loss column to 2 decimaal places
+    combined_stocks_df['gain loss'] = combined_stocks_df['current value'].round(2)
+    combined_options_df['gain loss'] = combined_options_df['current value'].round(2)
+
     # only return the harmonized columns
     harmonized_stock_cols = config['harmonized_stock_columns']
     harmonized_option_cols = config['harmonized_option_columns']
