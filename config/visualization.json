@@ -1,0 +1,14 @@
+{
+    "option_type_codes": {
+        "LC": "Long Call",
+        "LP": "Long Put",
+        "SC": "Short Call",
+        "SP": "Short Put"
+    },
+    "option_colors": {
+        "LC": "green",
+        "LP": "lime",
+        "SC": "darkred",
+        "SP": "orange"
+    }
+}

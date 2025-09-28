@@ -17,8 +17,33 @@ class FidelityParser(object):
 
     def load(self):
         """Load CSV and separate options and stocks"""
-        self.df = pd.read_csv(self.csv_file_path)
+        # remove any blank lines from the csv file
+        with open(self.csv_file_path, 'r') as f:
+            lines = [line for line in f if line.strip() and not line.startswith('"')]
+            self.df = pd.read_csv(pd.io.common.StringIO(''.join(lines)))
+
+        # remove some rows that are not options or equities
+        non_equity_symbols = ["CORE**", "Pending activity", "SPAXX**", "FDRXX***", "USD***"]
+        self.df = self.df[~self.df['Symbol'].isin(non_equity_symbols)]
+        
+        #self.df = pd.read_csv(self.csv_file_path)
         self.df['Last Price'] = self.df['Last Price'].str.replace(r'[\$,]', '', regex=True).astype(float)
+        # Add cost basis cleaning (assuming column exists; adjust if named differently)
+
+        # flag rows with "--" in the cost basis column
+        bad_cost_basis_mask = self.df["Cost Basis Total"] == "--"
+        bad_cost_basis = self.df[bad_cost_basis_mask]
+        if bad_cost_basis.shape[0] > 0:
+            print("\nWarning: Found rows with '--' in Cost Basis Total column:")
+            print(bad_cost_basis[["Account Number", "Symbol", "Cost Basis Total"]])
+            print("\n")
+
+        self.df = self.df[~bad_cost_basis_mask]
+
+        if 'Cost Basis Total' in self.df.columns:
+            self.df['Cost Basis Total'] = self.df['Cost Basis Total'].str.replace(r'[\$,]', '', regex=True).astype(float)
+        else:
+            self.df['Cost Basis Total'] = 0.0  # Fallback if column missing
         self.options_df = self.get_options_rows(self.df)
         self.stock_df = self.get_stock_rows(self.df)
         print(f"tot|options|stock|diff {len(self.df)}|{len(self.options_df)}|{len(self.stock_df)}|{len(self.df) - (len(self.options_df) + len(self.stock_df))}")
@@ -38,6 +63,7 @@ class FidelityParser(object):
         quantity = float(row.Quantity)
         account = row.get('Account Name', '')
         last_price = float(row.get('Last Price'))
+        cost_basis = float(row.get('Cost Basis Total', 0))
         print(description)
         
         # Extract ticker: first word before space
@@ -88,7 +114,8 @@ class FidelityParser(object):
             'options_type': options_type,
             'quantity': quantity,
             'account': account,
-            'last price': last_price
+            'last price': last_price,
+            'cost basis': cost_basis
         }
 
     def get_good_rows(self, df):

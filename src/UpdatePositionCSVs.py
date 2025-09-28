@@ -6,6 +6,7 @@ from fidelity_utils import FidelityParser
 from tastytrade_utils import TastytradeParser
 from options_list import annotaions_from_df
 import json
+from PlotPositions import PlotPositions  # Import the plotting class
 
 def harmonize_and_store(fidelity_csv_path, tastytrade_csv_path, output_format='json', output_path='harmonized_positions.json'):
     """
@@ -32,7 +33,7 @@ def harmonize_and_store(fidelity_csv_path, tastytrade_csv_path, output_format='j
 
     # read the config file for renaming columns
     with open('config/harmonization.json', 'r') as json_file:
-        config = json.load(open('config/harmonization.json'))
+        config = json.load(json_file)
     
    # parse the fidelity data
     for broker in ["fidelity", "tastytrade"]:
@@ -80,6 +81,10 @@ def harmonize_and_store(fidelity_csv_path, tastytrade_csv_path, output_format='j
     combined_options_df['current value'] = combined_options_df.apply(lambda row:
         row['last price'] * 100 * row['quantity'], axis=1)
     
+    # Compute gain/loss for both (assuming cost basis is total cost/credit)
+    combined_stocks_df['gain loss'] = combined_stocks_df['current value'] - combined_stocks_df['cost basis']
+    combined_options_df['gain loss'] = combined_options_df['current value'] - combined_options_df['cost basis']
+    
     # only return the harmonized columns
     harmonized_stock_cols = config['harmonized_stock_columns']
     harmonized_option_cols = config['harmonized_option_columns']
@@ -106,3 +111,8 @@ if __name__ == "__main__":
     
     stocks_df, options_df = harmonize_and_store(args.fidelity, args.tastytrade, args.format, args.output)
     annotaions_from_df(options_df)
+    
+    # Add plotting and reporting
+    plotter = PlotPositions(input_dir=args.output, output_dir=args.output)
+    plotter.plot_all(stocks_df, options_df)
+    plotter.report_expiring_options(options_df)

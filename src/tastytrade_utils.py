@@ -34,6 +34,11 @@ class TastytradeParser(object):
     def load(self):
         """Load CSV and separate options and stocks"""
         self.df = pd.read_csv(self.csv_file_path)
+        # Add cost basis cleaning (assuming column 'Cost Basis'; adjust if different)
+        if 'Cost Basis' in self.df.columns:
+            self.df['Cost Basis'] = self.df['Cost Basis'].str.replace(r'[\$,]', '', regex=True).astype(float)
+        else:
+            self.df['Cost Basis'] = 0.0  # Fallback
         self.options_df = self.get_options_rows(self.df)
         self.stock_df = self.get_stock_rows(self.df)
         print(f"tot|options|stock|diff {len(self.df)}|{len(self.options_df)}|{len(self.stock_df)}|{len(self.df) - (len(self.options_df) + len(self.stock_df))}")
@@ -65,6 +70,7 @@ class TastytradeParser(object):
         call_put = row.get('Call/Put').upper()
         account = row.get('Account', '')
         last_price = float(row.get('Bid (Sell)'))
+        cost_basis = float(row.get('Cost Basis', 0))
         
         # Skip non-options
         if opt_type != 'OPTION':
@@ -89,7 +95,6 @@ class TastytradeParser(object):
         expiration_date = datetime(year, month, day).strftime('%Y-%m-%d')
         
         # Determine call/put
-
         is_call = 'CALL' in call_put
         is_put = 'PUT' in call_put
         
@@ -113,5 +118,6 @@ class TastytradeParser(object):
             'options_type': options_type,
             'quantity': quantity,
             'account': account,
-            'last price': last_price
+            'last price': last_price,
+            'cost basis': cost_basis
         }

@@ -6,7 +6,9 @@
         "quantity",
         "last price",
         "type",
-        "current value"
+        "current value",
+        "cost basis",
+        "gain loss"
     ],
     "harmonized_option_columns": [
         "broker",
@@ -17,19 +19,23 @@
         "expiration",
         "strike",
         "last price",
-        "current value"
-        ],
+        "current value",
+        "cost basis",
+        "gain loss"
+    ],
     "fidelity": {
         "stock_renames": {
             "Last Price": "Last Price",
             "Account Name": "Account",
             "Quantity": "quantity",
-            "Symbol": "ticker"
+            "Symbol": "ticker",
+            "Cost Basis Total": "cost basis"
         },
         "option_renames": {
             "Last Price": "Last Price",
             "Quantity": "quantity",
-            "Symbol": "ticker"
+            "Symbol": "ticker",
+            "Cost Basis Total": "cost basis"
         }
     },
     "tastytrade": {
@@ -37,12 +43,14 @@
             "Underlying Last Price": "Last Price",
             "Account": "Account",
             "Quantity": "quantity",
-            "Symbol": "ticker"
+            "Symbol": "ticker",
+            "Cost Basis": "cost basis"
         },
         "option_renames": {
             "Bid (Sell)": "Last Price",
             "Account": "Account",
-            "Quantity": "quantity"
+            "Quantity": "quantity",
+            "Cost Basis": "cost basis"
         }
     }
 }
