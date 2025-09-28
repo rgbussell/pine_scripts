@@ -9,7 +9,7 @@ import os  # Added for file path handling
 import json
 
 with open('config/visualization.json', 'r') as f:
-    config = json.load(f)
+    plotting_config = json.load(f)
 
 class PlotPositions:
     def __init__(self, input_dir, output_dir):
@@ -29,7 +29,7 @@ class PlotPositions:
         
         img_base64 = self.plot_pie_allocation(stocks_df, options_df)
         html_parts.extend(img_base64)
-
+        
         img_base64 = self.plot_options_exposure_per_ticker(options_df)
         html_parts.extend(img_base64)
         
@@ -123,7 +123,7 @@ class PlotPositions:
         images.append('<h2>Portfolio Allocation by Ticker (Stocks + Options)</h2>' + self.get_base64_image(fig))
         
         return images
-    
+
     def plot_options_exposure_per_ticker(self, options_df):
         if options_df.empty:
             return []
@@ -132,39 +132,42 @@ class PlotPositions:
         grouped = options_df.groupby("ticker")
 
         for ticker, group in grouped:
-            # 1. Long and Short Exposure: Bar chart by options_type showing current value
-            fig, ax = plt.subplots(figsize=(8, 6))
+            fig, axs = plt.subplots(1, 3, figsize=(24, 6), sharey=True)
+            fig.suptitle(f"{ticker} Options Visualizations", fontsize=16)
+
+            # 1. Exposure by Type: Bar chart by options_type showing current value
             types = ["LC", "SC", "LP", "SP"]
-            colors_by_type = [config["option_colors"][t] for t in types]
+            types_colors = [plotting_config["option_colors"][t] for t in types]
             values = [group[group["options_type"] == t]["current value"].sum() for t in types]
             colors = ["green" if "L" in t else "red" for t in types]
-            ax.bar(types, values, color=colors)
-            ax.set_title(f"{ticker} Options Exposure by Type")
-            ax.set_xlabel("Options Type")
-            ax.set_ylabel("Current Value ($)")
-            ax.axhline(0, color="black", linewidth=0.5)
-            images.append(f"<h2>{ticker} Options Exposure by Type</h2>" + self.get_base64_image(fig))
+            axs[0].bar(types, values, color=colors)
+            axs[0].set_title("Exposure by Type")
+            axs[0].set_xlabel("Options Type")
+            axs[0].set_ylabel("Current Value ($)")
+            axs[0].axhline(0, color="black", linewidth=0.5)
 
-            # 2. Expiration Timeline: Stacked bar by expiration, net value per type
+            # 2. Exposure by Expiration: Stacked bar by expiration, net value per type
             exp_group = group.groupby(["expiration", "options_type"])["current value"].sum().unstack(fill_value=0)
-            fig, ax = plt.subplots(figsize=(10, 6))
-            exp_group.plot(kind="bar", stacked=True, ax=ax, color=colors_by_type)  # Colors for LC, SC, LP, SP
-            ax.set_title(f"{ticker} Options Exposure by Expiration")
-            ax.set_xlabel("Expiration Date")
-            ax.set_ylabel("Current Value ($)")
-            plt.xticks(rotation=45, ha="right")
-            images.append(f"<h2>{ticker} Options Exposure by Expiration</h2>" + self.get_base64_image(fig))
+            exp_group = exp_group.sort_index()  # Sort by expiration date
+            exp_group.plot(kind="bar", stacked=True, ax=axs[1], color=types_colors)  # Colors for LC, SC, LP, SP
+            axs[1].set_title("Exposure by Expiration")
+            axs[1].set_xlabel("Expiration Date")
+            axs[1].set_ylabel("Current Value ($)")
+            axs[1].tick_params(axis='x', rotation=45)
 
             # 3. Strike Ladder: Bar by strike, value per type
             strike_group = group.groupby(["strike", "options_type"])["current value"].sum().unstack(fill_value=0)
-            fig, ax = plt.subplots(figsize=(10, 6))
-            strike_group.plot(kind="bar", ax=ax, color=colors_by_type)  # Use predefined colors
-            ax.set_title(f"{ticker} Strike Ladder Exposure")
-            ax.set_xlabel("Strike Price")
-            ax.set_ylabel("Current Value ($)")
-            ax.axhline(0, color="black", linewidth=0.5)
-            plt.xticks(rotation=45, ha="right")
-            images.append(f"<h2>{ticker} Strike Ladder</h2>" + self.get_base64_image(fig))
+            strike_group = strike_group.sort_index()  # Sort by strike price
+            strike_group.plot(kind="bar", ax=axs[2], color=types_colors)
+            axs[2].set_title("Strike Ladder Exposure")
+            axs[2].set_xlabel("Strike Price")
+            axs[2].set_ylabel("Current Value ($)")
+            axs[2].axhline(0, color="black", linewidth=0.5)
+            axs[2].tick_params(axis='x', rotation=45)
+
+            # Tight layout for better spacing
+            plt.tight_layout()
+            images.append(f"<h2>{ticker} Options Visualizations</h2>" + self.get_base64_image(fig))
 
         return images
 
