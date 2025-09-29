@@ -135,9 +135,32 @@ class PlotPositions:
             stocks_df.groupby('ticker')['current value'].sum(),
             #options_df.groupby('ticker')['current value'].sum()
         ], axis=1).sum(axis=1, skipna=True)
-        fig, ax = plt.subplots(figsize=(10, 10))
-        ax.pie(combined_allocation, labels=combined_allocation.index, autopct='%1.1f%%')
-        ax.set_title('Portfolio Allocation by Ticker (Stocks + Options)')
+
+        # Create figure with two subplots side by side
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
+
+        # Calculate small positions (< 5%)
+        total_value = combined_allocation.sum()
+        small_positions = combined_allocation[combined_allocation/total_value < 0.02]
+        large_positions = combined_allocation[combined_allocation/total_value >= 0.02]
+        
+        # Add small positions as a single slice
+        if not small_positions.empty:
+            large_positions['Small Positions'] = small_positions.sum()
+        
+        # First pie chart with large positions and small positions aggregated
+        ax1.pie(large_positions, labels=large_positions.index, autopct='%1.1f%%')
+        ax1.set_title('Complete Portfolio Allocation')
+
+        # Second pie chart with only positions < 5%
+        if not small_positions.empty:
+            ax2.pie(small_positions, labels=small_positions.index, autopct='%1.1f%%')
+            ax2.set_title('Small Positions (< 2%)')
+        else:
+            ax2.text(0.5, 0.5, 'No positions < 2%', ha='center', va='center')
+            ax2.set_title('Small Positions (< 2%)')
+
+        plt.suptitle('Portfolio Allocation by Ticker (Stocks + Options)', fontsize=16)
         images.append('<h2>Portfolio Allocation by Ticker (Stocks + Options)</h2>' + self.get_base64_image(fig))
         
         return images
