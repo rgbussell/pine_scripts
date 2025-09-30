@@ -261,7 +261,7 @@ class PlotPositions:
         html = generate_html_list(expiring_today, "Expiring Today")
         html += generate_html_list(expiring_week, "...7 DTE")
         html += generate_html_list(expiring_month, "...30 DTE")
-        html += generate_html_list(expiring_month, "..45 DTE")
+        html += generate_html_list(expiring_45dte, "..45 DTE")
         html += generate_html_list(expiring_quarter, "...90 DTE")
         
         # Save all to a single CSV with bucket column
