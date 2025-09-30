@@ -93,6 +93,9 @@ def harmonize_and_store(fidelity_csv_path, tastytrade_csv_path, output_format='j
     combined_stocks_df['gain loss'] = combined_stocks_df['current value'].round(2)
     combined_options_df['gain loss'] = combined_options_df['current value'].round(2)
 
+    # Process synthetics in options
+    combined_options_df = process_synthetics(combined_options_df)
+
     # only return the harmonized columns
     harmonized_stock_cols = config['harmonized_stock_columns']
     harmonized_option_cols = config['harmonized_option_columns']
@@ -106,6 +109,68 @@ def harmonize_and_store(fidelity_csv_path, tastytrade_csv_path, output_format='j
 
     return combined_stocks_df, combined_options_df
 
+def process_synthetics(df):
+    """Identify synthetic longs and adjust the dataframe."""
+    df = df.copy()
+    synth_rows = []
+    groups = df.groupby(['ticker', 'expiration', 'strike'])
+    for name, group in groups:
+        lc_row = group[group['options_type'] == 'LC']
+        sp_row = group[group['options_type'] == 'SP']
+        if len(lc_row) == 0 or len(sp_row) == 0:
+            continue
+        lc_qty = lc_row['quantity'].iloc[0]
+        sp_qty = sp_row['quantity'].iloc[0]
+        if lc_qty <= 0 or sp_qty >= 0:
+            continue
+        synth_qty = min(lc_qty, -sp_qty)
+        if synth_qty <= 0:
+            continue
+
+        # Unit values (positive for both)
+        unit_lc_current = lc_row['current value'].iloc[0] / lc_qty
+        unit_sp_current = sp_row['current value'].iloc[0] / sp_qty
+        unit_lc_cost = lc_row['cost basis'].iloc[0] / lc_qty
+        unit_sp_cost = sp_row['cost basis'].iloc[0] / sp_qty
+
+        # For synthetic (net for the pair)
+        synth_current = synth_qty * (unit_lc_current + (unit_sp_current * -1))
+        synth_cost = synth_qty * (unit_lc_cost + (unit_sp_cost * -1))
+        synth_gain = synth_current - synth_cost
+
+        # Create synthetic row
+        synth_row = lc_row.iloc[0].copy()
+        synth_row['options_type'] = 'SYN_LONG'
+        synth_row['quantity'] = synth_qty
+        synth_row['current value'] = synth_current
+        synth_row['cost basis'] = synth_cost
+        synth_row['gain loss'] = synth_gain
+        synth_row['last price'] = None  # Not applicable
+        synth_rows.append(synth_row)
+
+        # Adjust LC row
+        lc_idx = lc_row.index[0]
+        df.at[lc_idx, 'quantity'] -= synth_qty
+        df.at[lc_idx, 'cost basis'] -= synth_qty * unit_lc_cost
+        df.at[lc_idx, 'current value'] = df.at[lc_idx, 'last price'] * 100 * df.at[lc_idx, 'quantity']
+        df.at[lc_idx, 'gain loss'] = df.at[lc_idx, 'current value'] - df.at[lc_idx, 'cost basis']
+
+        # Adjust SP row
+        sp_idx = sp_row.index[0]
+        df.at[sp_idx, 'quantity'] += synth_qty
+        df.at[sp_idx, 'cost basis'] -= synth_qty * (unit_sp_cost * -1)
+        df.at[sp_idx, 'current value'] = df.at[sp_idx, 'last price'] * 100 * df.at[sp_idx, 'quantity']
+        df.at[sp_idx, 'gain loss'] = df.at[sp_idx, 'current value'] - df.at[sp_idx, 'cost basis']
+
+    # Remove zero-quantity rows
+    df = df[df['quantity'] != 0]
+
+    # Append synthetic rows
+    if synth_rows:
+        synth_df = pd.DataFrame(synth_rows)
+        df = pd.concat([df, synth_df], ignore_index=True)
+
+    return df
 
 # Example usage (replace with your file paths and desired output)
 if __name__ == "__main__":

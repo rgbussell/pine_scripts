@@ -7,6 +7,7 @@ import base64
 import webbrowser
 import os  # Added for file path handling
 import json
+import numpy as np
 
 with open('config/visualization.json', 'r') as f:
     plotting_config = json.load(f)
@@ -24,8 +25,8 @@ class PlotPositions:
         img_base64 = self.plot_current_value(stocks_df, options_df)
         html_parts.extend(img_base64)
         
-        img_base64 = self.plot_gain_loss(stocks_df, options_df)
-        html_parts.extend(img_base64)
+        #img_base64 = self.plot_gain_loss(stocks_df, options_df)
+        #html_parts.extend(img_base64)
         
         img_base64 = self.plot_pie_allocation(stocks_df, options_df)
         html_parts.extend(img_base64)
@@ -84,7 +85,7 @@ class PlotPositions:
         images.append('<h2>Current Value by Stock Position</h2>' + self.get_base64_image(fig))
         
         # Options current value bar plot
-        if not options_df.empty:
+        if not options_df.empty and False:
             options_df['label'] = options_df['ticker'] + ' ' + options_df['strike'].astype(str) + ' ' + options_df['options_type'] + ' ' + options_df['expiration']
             sorted_options = options_df.sort_values('current value', ascending=False)
             fig, ax = plt.subplots(figsize=(12, 6))
@@ -113,7 +114,7 @@ class PlotPositions:
         images.append('<h2>Gain/Loss by Stock Position</h2>' + self.get_base64_image(fig))
         
         # Options gain/loss bar plot
-        if not options_df.empty:
+        if not options_df.empty and False:
             options_df['label'] = options_df['ticker'] + ' ' + options_df['strike'].astype(str) + ' ' + options_df['options_type'] + ' ' + options_df['expiration']
             sorted_options = options_df.sort_values('gain loss', ascending=False)
             colors = ['g' if x > 0 else 'r' for x in sorted_options['gain loss']]
@@ -129,6 +130,9 @@ class PlotPositions:
 
     def plot_pie_allocation(self, stocks_df, options_df):
         images = []
+
+        sm_pos_pct = 2.0  # Small position percentage threshold
+        fs = 14 # Font size for pie annotations
         
         # Pie chart: Portfolio allocation by ticker (stocks + options current value)
         combined_allocation = pd.concat([
@@ -141,24 +145,32 @@ class PlotPositions:
 
         # Calculate small positions (< 5%)
         total_value = combined_allocation.sum()
-        small_positions = combined_allocation[combined_allocation/total_value < 0.02]
-        large_positions = combined_allocation[combined_allocation/total_value >= 0.02]
+        small_positions = combined_allocation[combined_allocation/total_value < sm_pos_pct/100]
+        large_positions = combined_allocation[combined_allocation/total_value >= sm_pos_pct/100]
         
         # Add small positions as a single slice
         if not small_positions.empty:
             large_positions['Small Positions'] = small_positions.sum()
-        
-        # First pie chart with large positions and small positions aggregated
-        ax1.pie(large_positions, labels=large_positions.index, autopct='%1.1f%%')
-        ax1.set_title('Complete Portfolio Allocation')
 
-        # Second pie chart with only positions < 5%
+        # First pie chart with large positions and small positions aggregated
+        num_colors = len(small_positions)
+        colors = plt.cm.tab10(np.linspace(0, 1, num_colors))
+        ax1.pie(large_positions, labels=large_positions.index, autopct='%1.1f%%', 
+            textprops={'fontsize': fs}, labeldistance=1.1, colors=colors)
+        ax1.set_title('Major Portfolio Allocations', fontsize=16)
+
+        # Second pie chart with only positions < small pos threshold
         if not small_positions.empty:
-            ax2.pie(small_positions, labels=small_positions.index, autopct='%1.1f%%')
-            ax2.set_title('Small Positions (< 2%)')
+            # Create pastel colors using alpha transparency
+            num_colors = len(small_positions)
+            colors = plt.cm.tab10(np.linspace(0, 1, num_colors))
+            
+            ax2.pie(small_positions, labels=small_positions.index, autopct='%1.1f%%',
+               textprops={'fontsize': fs}, labeldistance=1.1, colors=colors)
+            ax2.set_title(f'Small Positions (< {sm_pos_pct}%)', fontsize=16)
         else:
-            ax2.text(0.5, 0.5, 'No positions < 2%', ha='center', va='center')
-            ax2.set_title('Small Positions (< 2%)')
+            ax2.text(0.5, 0.5, f'No positions < {sm_pos_pct}%', ha='center', va='center', fontsize=14)
+            ax2.set_title(f'Small Positions (< {sm_pos_pct}%)', fontsize=16)
 
         plt.suptitle('Portfolio Allocation by Ticker (Stocks + Options)', fontsize=16)
         images.append('<h2>Portfolio Allocation by Ticker (Stocks + Options)</h2>' + self.get_base64_image(fig))
@@ -177,7 +189,7 @@ class PlotPositions:
             #fig.suptitle(f"{ticker}", fontsize=16)
 
             # 1. Exposure by Type: Bar chart by options_type showing current value
-            types = ["LC", "LP", "SC", "SP"]
+            types = ["LC", "LP", "SC", "SP", "SYN_LONG"]
             types_colors = [plotting_config["option_colors"][t] for t in types]
             values = [group[group["options_type"] == t]["current value"].sum() for t in types]
             axs[0].bar(types, values, color=types_colors)

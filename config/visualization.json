@@ -3,12 +3,14 @@
         "LC": "Long Call",
         "LP": "Long Put",
         "SC": "Short Call",
-        "SP": "Short Put"
+        "SP": "Short Put",
+        "SYN_LONG": "Synthetic Long"
     },
     "option_colors": {
         "LC": "darkgreen",
         "LP": "red",
         "SC": "green",
-        "SP": "darkred"
+        "SP": "darkred",
+        "SYN_LONG": "purple"
     }
 }
