@@ -31,6 +31,7 @@ draw_annotation(ticker, expiration_str, strike_price, options_type) =>
                 "SP" => color.rgb(240, 104, 143)
                 "SC" => color.rgb(221, 210, 118)
                 "LP" => color.white
+                "SYN_LONG" => color.purple
                 => color.gray  // Fallback
             
             // Semi-transparent color for blending on overlaps (alpha=70/255 ~27% transparent)
@@ -42,6 +43,7 @@ draw_annotation(ticker, expiration_str, strike_price, options_type) =>
                 "SP" => line.style_solid
                 "SC" => line.style_solid
                 "LP" => line.style_solid
+                "SYN_LONG" => line.style_solid
                 => line.style_solid
             
             // Text for label (use base color for text, semi-transparent background if needed)
