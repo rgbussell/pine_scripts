@@ -178,54 +178,103 @@ class PlotPositions:
         return images
 
     def plot_options_exposure_per_ticker(self, options_df):
-        if options_df.empty:
-            return []
-
         images = []
+        if options_df.empty:
+            return images
+        
+        # Option types and colors from config
+        types = list(plotting_config["option_type_codes"].keys())
+        types_colors = [plotting_config["option_colors"][t] for t in types]
+        
+        # Group by ticker
         grouped = options_df.groupby("ticker")
-
+        
+        current_date = datetime.now()
+        
         for ticker, group in grouped:
-            fig, axs = plt.subplots(1, 3, figsize=(12, 4), sharey=True)
-            #fig.suptitle(f"{ticker}", fontsize=16)
+            if group.empty:
+                continue
+            
+            # Compute DTE and filter to next 90 days
+            group['expiration_date'] = pd.to_datetime(group['expiration'])
+            group['DTE'] = (group['expiration_date'] - current_date).dt.days
+            
+            if group.empty:
+                continue
+            
+            # Calculate symmetric y-limits centered on zero
+            max_abs = max(abs(group['current value'].min()), group['current value'].max()) * 1.1
+            y_limits = (-max_abs, max_abs)
+            
+            # Create subplots
+            fig, axs = plt.subplots(2, 2, figsize=(18, 6))
+            
+            # 1. Exposure by Type: Bar per type, net value
+            cax = axs[0, 0]
+            type_group = group.groupby("options_type")["current value"].sum().reindex(types)
+            type_group.plot(kind="bar", ax=cax, color=types_colors)
+            cax.set_title("Exposure by Type")
+            cax.set_xlabel("Option Type", fontsize=14)
+            cax.set_ylabel("Net Exposure ($)", fontsize=14)
+            cax.tick_params(axis='both', labelsize=14)
+            cax.set_ylim(y_limits)
+            # Shade negative area
+            cax.fill_between(cax.get_xlim(), y_limits[0], 0, color='lightblue', alpha=0.3)
 
-            # 1. Exposure by Type: Bar chart by options_type showing current value
-            types = ["LC", "LP", "SC", "SP", "SYN_LONG"]
-            types_colors = [plotting_config["option_colors"][t] for t in types]
-            values = [group[group["options_type"] == t]["current value"].sum() for t in types]
-            axs[0].bar(types, values, color=types_colors)
-            axs[0].set_title("Exposure by Type")
-            axs[0].set_xlabel("Options Type", fontsize=14)
-            axs[0].set_ylabel("Current Value ($)", fontsize=14)
-            axs[0].tick_params(axis='both', labelsize=14)
-            axs[0].axhline(0, color="black", linewidth=0.5)
+            if False:
+                # 2 and 3. Exposure by DTE: Stacked bar by DTE, net value per type
+                for nax in [0, 1]:
+                    if nax == 0:
+                        min_dte = 0
+                        max_dte = 90
+                        stride = 10
+                    elif nax == 1:
+                        min_dte = 91
+                        max_dte = 720
+                        stride = 60
+                    
+                    # filter the group for DTE range
+                    this_group = group[(group['DTE'] >= min_dte) & (group['DTE'] <= max_dte)]
+                    exp_group = this_group.groupby(["DTE", "options_type"])["current value"].sum().unstack(fill_value=0)
 
-            # 2. Exposure by Expiration: Stacked bar by expiration, net value per type
-            exp_group = group.groupby(["expiration", "options_type"])["current value"].sum().unstack(fill_value=0)
-            exp_group = exp_group.reindex(columns=types)  # Reorder columns to match types order
-            exp_group = exp_group.sort_index()  # Sort by expiration date
-            exp_group.plot(kind="bar", stacked=True, ax=axs[1], color=types_colors)
-            axs[1].set_title("Exposure by Expiration")
-            axs[1].set_xlabel("Expiration Date", fontsize=14)
-            axs[1].set_ylabel("Current Value ($)", fontsize=14)
-            axs[1].tick_params(axis='both', labelsize=14)
-            axs[2].axhline(0, color="black", linewidth=0.5)
-            axs[1].tick_params(axis='x', rotation=45)
+                    # create the subplot for Exposure by DTE
+                    cax = axs[1, nax]
+                    exp_group = exp_group.reindex(columns=types)
+                    full_dte = pd.Index(range(min_dte, max_dte + 1))  # 0 to 90 inclusive
+                    exp_group = exp_group.reindex(full_dte, fill_value=0)
+                    exp_group = exp_group.sort_index()
+                    exp_group.plot(kind="bar", stacked=True, ax=cax, color=types_colors)
+                    cax.set_title("Exposure by DTE")
+                    cax.set_xlabel("Days to Expiration", fontsize=14)
+                    cax.set_ylabel("", fontsize=14)  # Remove y-label for middle plot
+                    cax.tick_params(axis='both', labelsize=14)
+                    cax.tick_params(axis='x', rotation=90)
+                    cax.set_xlim(min_dte - 0.5, max_dte + 0.5)  # Adjust limits to show from 0 to 90
+                    cax.set_xticks(range(min_dte, max_dte + 1, stride))  # Optional: ticks every 10 days for readability
+                    cax.set_xticklabels(range(min_dte, max_dte + 1, stride))
+                    cax.set_ylim(y_limits)
+                    # Shade negative area
+                    cax.fill_between(cax.get_xlim(), y_limits[0], 0, color='lightblue', alpha=0.3)
 
-            # 3. Strike Ladder: Bar by strike, value per type
+
+            # 4. Strike Ladder: Bar by strike, value per type
+            cax = axs[0, 1]
             strike_group = group.groupby(["strike", "options_type"])["current value"].sum().unstack(fill_value=0)
-            strike_group = strike_group.reindex(columns=types)  # Reorder columns to match types order
-            strike_group = strike_group.sort_index()  # Sort by strike price
-            strike_group.plot(kind="bar", ax=axs[2], color=types_colors)
-            axs[2].set_title("Strike Ladder Exposure")
-            axs[2].set_xlabel("Strike Price", fontsize=14)
-            axs[2].set_ylabel("Current Value ($)", fontsize=14) 
-            axs[2].tick_params(axis='both', labelsize=14)
-            axs[2].axhline(0, color="black", linewidth=0.5)
-            axs[2].tick_params(axis='x', rotation=45)
+            strike_group = strike_group.reindex(columns=types)
+            strike_group = strike_group.sort_index()
+            strike_group.plot(kind="bar", ax=cax, color=types_colors)
+            cax.set_title("Strike Ladder")
+            cax.set_xlabel("Strike Price", fontsize=14)
+            cax.set_ylabel("", fontsize=14)  # Remove y-label for right plot
+            cax.tick_params(axis='both', labelsize=14)
+            cax.tick_params(axis='x', rotation=45)
+            cax.set_ylim(y_limits)
+            # Shade negative area
+            cax.fill_between(cax.get_xlim(), y_limits[0], 0, color='lightblue', alpha=0.3)
 
             # Tight layout for better spacing
             plt.tight_layout()
-            images.append(f"<h2>{ticker} Options Visualizations</h2>" + self.get_base64_image(fig))
+            images.append(f"<h2>{ticker} Options Positions (Next 90 Days)</h2>" + self.get_base64_image(fig))
 
         return images
 
