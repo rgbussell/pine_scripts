@@ -190,7 +190,7 @@ class PlotPositions:
         grouped = options_df.groupby("ticker")
         
         current_date = datetime.now()
-        
+
         for ticker, group in grouped:
             if group.empty:
                 continue
@@ -207,10 +207,10 @@ class PlotPositions:
             y_limits = (-max_abs, max_abs)
             
             # Create subplots
-            fig, axs = plt.subplots(2, 2, figsize=(18, 6))
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4), sharey=True)
             
             # 1. Exposure by Type: Bar per type, net value
-            cax = axs[0, 0]
+            cax = ax1
             type_group = group.groupby("options_type")["current value"].sum().reindex(types)
             type_group.plot(kind="bar", ax=cax, color=types_colors)
             cax.set_title("Exposure by Type")
@@ -221,60 +221,61 @@ class PlotPositions:
             # Shade negative area
             cax.fill_between(cax.get_xlim(), y_limits[0], 0, color='lightblue', alpha=0.3)
 
-            if False:
-                # 2 and 3. Exposure by DTE: Stacked bar by DTE, net value per type
-                for nax in [0, 1]:
-                    if nax == 0:
-                        min_dte = 0
-                        max_dte = 90
-                        stride = 10
-                    elif nax == 1:
-                        min_dte = 91
-                        max_dte = 720
-                        stride = 60
-                    
-                    # filter the group for DTE range
-                    this_group = group[(group['DTE'] >= min_dte) & (group['DTE'] <= max_dte)]
-                    exp_group = this_group.groupby(["DTE", "options_type"])["current value"].sum().unstack(fill_value=0)
-
-                    # create the subplot for Exposure by DTE
-                    cax = axs[1, nax]
-                    exp_group = exp_group.reindex(columns=types)
-                    full_dte = pd.Index(range(min_dte, max_dte + 1))  # 0 to 90 inclusive
-                    exp_group = exp_group.reindex(full_dte, fill_value=0)
-                    exp_group = exp_group.sort_index()
-                    exp_group.plot(kind="bar", stacked=True, ax=cax, color=types_colors)
-                    cax.set_title("Exposure by DTE")
-                    cax.set_xlabel("Days to Expiration", fontsize=14)
-                    cax.set_ylabel("", fontsize=14)  # Remove y-label for middle plot
-                    cax.tick_params(axis='both', labelsize=14)
-                    cax.tick_params(axis='x', rotation=90)
-                    cax.set_xlim(min_dte - 0.5, max_dte + 0.5)  # Adjust limits to show from 0 to 90
-                    cax.set_xticks(range(min_dte, max_dte + 1, stride))  # Optional: ticks every 10 days for readability
-                    cax.set_xticklabels(range(min_dte, max_dte + 1, stride))
-                    cax.set_ylim(y_limits)
-                    # Shade negative area
-                    cax.fill_between(cax.get_xlim(), y_limits[0], 0, color='lightblue', alpha=0.3)
-
-
-            # 4. Strike Ladder: Bar by strike, value per type
-            cax = axs[0, 1]
+            # 2. Strike Ladder: Bar by strike, value per type
+            cax = ax2
             strike_group = group.groupby(["strike", "options_type"])["current value"].sum().unstack(fill_value=0)
             strike_group = strike_group.reindex(columns=types)
             strike_group = strike_group.sort_index()
-            strike_group.plot(kind="bar", ax=cax, color=types_colors)
+            strike_group.plot(kind="bar", ax=cax, color=types_colors, legend=False)
             cax.set_title("Strike Ladder")
             cax.set_xlabel("Strike Price", fontsize=14)
             cax.set_ylabel("", fontsize=14)  # Remove y-label for right plot
             cax.tick_params(axis='both', labelsize=14)
-            cax.tick_params(axis='x', rotation=45)
+            cax.tick_params(axis='x', rotation=0)
             cax.set_ylim(y_limits)
             # Shade negative area
             cax.fill_between(cax.get_xlim(), y_limits[0], 0, color='lightblue', alpha=0.3)
 
             # Tight layout for better spacing
             plt.tight_layout()
-            images.append(f"<h2>{ticker} Options Positions (Next 90 Days)</h2>" + self.get_base64_image(fig))
+            images.append(f"<h2>{ticker}</h2>" + self.get_base64_image(fig))
+
+            # Create subplots
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4), sharey=True)
+            # 1. Expiration DTE Prices: Scatter plot of expirations
+
+            cax = ax1
+            st_group = group[group['DTE'] < 60]
+            cax.scatter(st_group['DTE'], st_group['strike'], c='red', alpha=0.3, marker='o', s=100)
+
+            cax.set_title("Expiration Prices")
+            cax.set_xlabel("Days to Expiration", fontsize=14)
+            cax.set_ylabel("Strike", fontsize=14)
+            cax.tick_params(axis='both', labelsize=14)
+            cax.tick_params(axis='x', rotation=90)
+            cax.grid(True, linestyle='--', alpha=0.7)
+            # Set specific x-ticks
+            xticks = np.linspace(0, 60, num=10, dtype=int)
+            cax.set_xticks(xticks)
+            cax.set_xticklabels(xticks)
+
+            cax = ax2
+            lt_group = group[group['DTE'] >= 60]
+            cax.scatter(lt_group['DTE'], lt_group['strike'], c='blue', alpha=0.3, marker='o', s=100)
+            cax.set_title("Expiration Prices")
+            cax.set_xlabel("Days to Expiration", fontsize=14)
+            cax.set_ylabel("Strike", fontsize=14)
+            cax.tick_params(axis='both', labelsize=14)
+            cax.tick_params(axis='x', rotation=90)
+            cax.grid(True, linestyle='--', alpha=0.7)
+            # Set specific x-ticks
+            xticks = [60, 90, 120, 180, 270, 360, 540, 720]
+            cax.set_xticks(xticks)
+            cax.set_xticklabels(xticks)
+
+            # Tight layout for better spacing
+            plt.tight_layout()
+            images.append(self.get_base64_image(fig))
 
         return images
 

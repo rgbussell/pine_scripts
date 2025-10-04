@@ -8,8 +8,8 @@
     },
     "option_colors": {
         "LC": "darkgreen",
+        "SC": "lime",
         "LP": "red",
-        "SC": "green",
         "SP": "darkred",
         "SYN_LONG": "purple"
     }
